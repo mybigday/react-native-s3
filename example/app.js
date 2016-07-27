@@ -11,7 +11,7 @@ import React, {
 import { transferUtility } from "react-native-s3";
 import fs from "react-native-fs";
 
-const bucketName = "database-versame"; // name of bucket
+const bucketName = ""; // name of bucket
 const uploadFileKey = "ReactNativeTest/test.mp4"; // path to file in s3, excluding bucket
 const contentType = "image/jpeg"; // type of file
 const uploadFilePath = fs.DocumentDirectoryPath + "/test.mp4"; // file to be uploaded
