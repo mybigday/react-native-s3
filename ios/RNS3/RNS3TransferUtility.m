@@ -3,6 +3,7 @@
 
 static NSMutableDictionary *nativeCredentialsOptions;
 static bool alreadyInitialize = false;
+static bool subscribeProgress;
 
 @interface RNS3TransferUtility ()
 
@@ -156,17 +157,20 @@ RCT_EXPORT_METHOD(setupWithCognito: (NSDictionary *)options resolver:(RCTPromise
     }];
 }
 
-RCT_EXPORT_METHOD(initializeRNS3) {
+RCT_EXPORT_METHOD(initializeRNS3: (bool)subscribeProgressValue) {
   if (alreadyInitialize) return;
   alreadyInitialize = true;
+  subscribeProgress = subscribeProgressValue;
   self.uploadProgress = ^(AWSS3TransferUtilityTask *task, NSProgress *progress) {
     NSLog(@"update");
-    [self sendEvent:task
-               type:@"upload"
-              state:@"in_progress"
-              bytes:progress.completedUnitCount
-         totalBytes:progress.totalUnitCount
-              error:nil];
+    if (subscribeProgress == true) {
+      [self sendEvent:task
+                 type:@"upload"
+                state:@"in_progress"
+                bytes:progress.completedUnitCount
+           totalBytes:progress.totalUnitCount
+                error:nil];
+    }
   };
   self.completionUploadHandler = ^(AWSS3TransferUtilityUploadTask *task, NSError *error) {
     NSString *state;
@@ -180,12 +184,14 @@ RCT_EXPORT_METHOD(initializeRNS3) {
   };
   
   self.downloadProgress = ^(AWSS3TransferUtilityTask *task, NSProgress *progress) {
-    [self sendEvent:task
-               type:@"download"
-              state:@"in_progress"
-              bytes:progress.completedUnitCount
-         totalBytes:progress.totalUnitCount
-              error:nil];
+    if (subscribeProgress == true) {
+      [self sendEvent:task
+                 type:@"download"
+                state:@"in_progress"
+                bytes:progress.completedUnitCount
+           totalBytes:progress.totalUnitCount
+                error:nil];
+    }
   };
   self.completionDownloadHandler = ^(AWSS3TransferUtilityDownloadTask *task, NSURL *location, NSData *data, NSError *error) {
     NSString *state;
