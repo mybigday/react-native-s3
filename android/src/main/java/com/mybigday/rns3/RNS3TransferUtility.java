@@ -39,7 +39,7 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
 
   static {
     // default options
-    nativeCredentialsOptions.put("region", "eu-west-1");
+    nativeCredentialsOptions.put("region", "us-east-1");
     nativeCredentialsOptions.put("cognito_region", "eu-west-1");
   }
 
@@ -47,6 +47,7 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
   private Context context;
   private AmazonS3 s3;
   private TransferUtility transferUtility;
+  private Boolean subscribeProgress;
 
   public RNS3TransferUtility(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -94,19 +95,25 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
         TransferObserver task = transferUtility.getTransferById(id);
         WritableMap result = Arguments.createMap();
         result.putMap("task", convertTransferObserver(task));
-        sendEvent("@_RNS3_Events", result);
+        getReactApplicationContext()
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("State_Changed", result);
       }
 
       @Override
       public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
-        TransferObserver task = transferUtility.getTransferById(id);
-        WritableMap result = Arguments.createMap();
-        WritableMap taskMap = convertTransferObserver(task);
-        if (taskMap.getDouble("bytes") <= bytesTotal) {
-          taskMap.putDouble("bytes", bytesCurrent);
-        }
-        result.putMap("task", taskMap);
-        sendEvent("@_RNS3_Events", result);
+          if (subscribeProgress == true) {
+              TransferObserver task = transferUtility.getTransferById(id);
+              WritableMap result = Arguments.createMap();
+              WritableMap taskMap = convertTransferObserver(task);
+              if (taskMap.getDouble("bytes") <= bytesTotal) {
+                taskMap.putDouble("bytes", bytesCurrent);
+              }
+              result.putMap("task", taskMap);
+              getReactApplicationContext()
+                      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                      .emit("Progress_Changed", result);
+          }
       }
 
       @Override
@@ -115,7 +122,9 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
         WritableMap result = Arguments.createMap();
         result.putMap("task", convertTransferObserver(task));
         result.putString("error", ex.getMessage());
-        sendEvent("@_RNS3_Events", result);
+        getReactApplicationContext()
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("Error", result);
       }
     });
   }
@@ -182,9 +191,10 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void initializeRNS3() {
+  public void initializeRNS3(Boolean subscribeProgress) {
     if (alreadyInitialize) return;
     alreadyInitialize = true;
+    this.subscribeProgress = subscribeProgress;
     subscribeList(transferUtility.getTransfersWithType(TransferType.UPLOAD));
     subscribeList(transferUtility.getTransfersWithType(TransferType.DOWNLOAD));
   }

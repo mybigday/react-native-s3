@@ -5,67 +5,62 @@ import React, {
 	Text,
 	View,
 	ScrollView,
-	TouchableHighlight
+	TouchableHighlight,
+	DeviceEventEmitter
 } from "react-native";
 import { transferUtility } from "react-native-s3";
 import fs from "react-native-fs";
 
-console.log(fs.DocumentDirectoryPath);
+const bucketName = "database-versame"; // name of bucket
+const uploadFileKey = "ReactNativeTest/test.mp4"; // path to file in s3, excluding bucket
+const contentType = "image/jpeg"; // type of file
+const uploadFilePath = fs.DocumentDirectoryPath + "/test.mp4"; // file to be uploaded
+const downloadFileKey = "ReactNativeTest/hello_world.png"; // path to file in s3, excluding bucket
+const downloadFilePath = fs.DocumentDirectoryPath + "/blah.png"; // path to where file should be downloaded to
 
-const bucketName = "";
-const uploadFileKey = "test.mp4";
-const contentType = "image/jpeg";
-const uploadFilePath = fs.DocumentDirectoryPath + "/test.mp4";
-const downloadFileKey = "test.mp4";
-const downloadFilePath = fs.DocumentDirectoryPath + "/test_download.mp4";
+const subscribeProgress = true; // Change to false if you don't want to subscribe to progress events
+var transferAction = "";
+
+
+// aws access keys and region
+const options = {
+	"access_key": "xxxx",
+	"secret_key": "xxxxxxxxxxxxx",
+	"region": "us-east-1",
+}
 
 const sampleVideoURL = "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4";
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		marginTop: 20,
-		backgroundColor: "#F5FCFF"
-	},
-	title: {
-		fontSize: 20,
-		textAlign: "center",
-		margin: 10
-	},
-	task: {
-		flexDirection: "row",
-		justifyContent: "center"
-	},
-	text: {
-		fontSize: 12,
-		textAlign: "center",
-		margin: 10
-	},
-	btn: {
-		fontSize: 15,
-		textAlign: "center",
-		margin: 10
-	}
-});
 
 class S3Sample extends Component {
 	constructor(props) {
 		super(props);
 
 		this.state = {
-			initLoaded: false
+			initLoaded: false,
+			logText: "",
 		};
 	}
 
 	async componentDidMount() {
 		if (!this.state.initLoaded) {
 			if (!await fs.exists(uploadFilePath)) {
-				await fs.downloadFile(sampleVideoURL, uploadFilePath);
+				await fs.downloadFile(sampleVideoURL, uploadFilePath).then(res => {
+				    fs.readDir(fs.DocumentDirectoryPath)
+				    .then((result) => {
+					    // Confirm that the file was written
+					});
+				});
 			}
-			await transferUtility.setupWithNative();
+
+			// Set up with basic options set, or with options set in the native code
+			await transferUtility.setupWithBasic(options, subscribeProgress);
 
 			const uploadTasks = await transferUtility.getTasks("upload", true);
 			const downloadTasks = await transferUtility.getTasks("download", true);
+
+			DeviceEventEmitter.addListener('State_Changed', result => this.handleEvent('State_Changed', result));
+    		DeviceEventEmitter.addListener('Progress_Changed', result => this.handleEvent('Progress_Changed', result));
+			DeviceEventEmitter.addListener('Error', result => this.handleEvent('Error', result));
 
 			for (const id in uploadTasks) {
 				this.subscribeWithUpdateState(id, "uploadTasks");
@@ -74,9 +69,30 @@ class S3Sample extends Component {
 				this.subscribeWithUpdateState(id, "downloadTasks");
 			}
 
-			this.setState({ initLoaded: true, uploadTasks, downloadTasks });
+			this.setState({ initLoaded: true, logText: "Press Download or Upload to begin \n" });
 		}
 	}
+
+	handleEvent = (eventType, result) => {
+		switch(eventType) {
+			case 'State_Changed':
+				if (result.task.state == 'completed' && transferAction == 'Download') {
+					this.setState({ logText: `${ this.state.logText }State_Changed: ${ result.task.state } \nDownload complete \nFile location: ${ fs.DocumentDirectoryPath }` });	
+				} else if (result.task.state == 'completed' && transferAction == 'Upload') {
+					this.setState({ logText: `${ this.state.logText }State_Changed: ${ result.task.state } \nUpload complete \ns3 file location: ${ bucketName }/${ uploadFileKey }` });	
+				} else { this.setState({ logText: `${ this.state.logText }State_Changed: ${ result.task.state } \n` }); }
+				break;
+			case 'Progress_Changed':
+				this.setState({ logText: `${ this.state.logText }Progress_Changed: ${ result.task.bytes/result.task.totalBytes * 100 }% \n` });
+				break;
+			case 'Error':
+				this.setState({ logText: `${ this.state.logText }Error: ${ result.error } \n\n` });
+				break;
+			default: 
+				console.warn("Receiving event that doesn't match case");
+				break;
+		}		
+	};
 
 	subscribeWithUpdateState = (id, typeKey) => {
 		transferUtility.subscribe(id, (err, task) => {
@@ -91,6 +107,7 @@ class S3Sample extends Component {
 	};
 
 	handleUploadFile = async () => {
+		transferAction = "Upload";
 		const task = await transferUtility.upload({
 			bucket: bucketName,
 			key: uploadFileKey,
@@ -109,6 +126,7 @@ class S3Sample extends Component {
 	};
 
 	handleDownloadFile = async () => {
+		transferAction = "Download";
 		const task = await transferUtility.download({
 			bucket: bucketName,
 			key: downloadFileKey,
@@ -146,81 +164,70 @@ class S3Sample extends Component {
 		transferUtility.resume(id);
 	}
 
-	renderTasks(tasks) {
-		return Object.keys(tasks).map(id => {
-			let progress;
-			if (tasks[id].totalBytes) {
-				progress = <Text style={styles.text}>{(tasks[id].bytes / tasks[id].totalBytes) * 100 + "%"}</Text>;
-			}
-			return (
-				<View
-					key={id}
-					style={styles.task}
-				>
-					<Text style={styles.text}>{id}</Text>
-					<Text style={styles.text}>{tasks[id].state}</Text>
-					{progress}
-				</View>
-			);
-		});
-	}
-
-	renderUploadTask() {
-		const { uploadTasks } = this.state;
-		return (
-			<View>
-				<Text style={styles.title}>{"Upload Tasks"}</Text>
-				{this.renderTasks(uploadTasks)}
-				<TouchableHighlight onPress={this.handleUploadFile}>
-					<Text style={styles.btn}>{"New Upload"}</Text>
-				</TouchableHighlight>
-			</View>
-		);
-	}
-
-	renderDownloadTask() {
-		const { downloadTasks } = this.state;
-		return (
-			<View>
-				<Text style={styles.title}>{"Download Tasks"}</Text>
-				{this.renderTasks(downloadTasks)}
-				<TouchableHighlight onPress={this.handleDownloadFile}>
-					<Text style={styles.btn}>{"New Download"}</Text>
-				</TouchableHighlight>
-			</View>
-		);
-	}
-
-	renderLoading() {
-		return (
-			<View>
-				<Text style={styles.title}>{"Loading..."}</Text>
-			</View>
-		);
-	}
-
 	render() {
 		return (
-			<View style={styles.container}>
-				<ScrollView>
-					{
-						(() => {
-							if (!this.state.initLoaded) {
-								return this.renderLoading();
-							} else {
-								return (
-									<View>
-										{this.renderUploadTask()}
-										{this.renderDownloadTask()}
-									</View>
-								);
-							}
-						})()
-					}
-				</ScrollView>
+			<View style={ styles.container }>
+				<TouchableHighlight onPress={this.handleDownloadFile}>
+					<Text style={styles.btn}>Download Designated File</Text>
+				</TouchableHighlight>
+				<TouchableHighlight onPress={this.handleUploadFile}>
+					<Text style={styles.btn}>Upload Designated File</Text>
+				</TouchableHighlight>
+				<ScrollView 
+		        ref='scrollView'
+		        style={ styles.logContainer }
+		        onContentSizeChange={ (width, height) => { this.refs.scrollView.scrollTo({ y: height }) } }>
+		            <Text
+		            style={ styles.logText }>
+		                { this.state.logText }
+		            </Text>
+		        </ScrollView>
 			</View>
 		);
 	}
 }
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		marginTop: 20,
+		alignItems: 'center',
+		backgroundColor: "#F5FCFF"
+	},
+	title: {
+		fontSize: 20,
+		textAlign: "center",
+		margin: 10
+	},
+	task: {
+		flexDirection: "row",
+		justifyContent: "center"
+	},
+	logText: {
+	    alignItems: 'center',
+	    paddingBottom: 20,
+	},
+	text: {
+		fontSize: 12,
+		textAlign: "center",
+		margin: 10
+	},
+	btn: {
+		fontSize: 15,
+		textAlign: "center",
+		margin: 10
+	},
+	logContainer: {
+	    flex: 1,
+	    width: 350,
+	    marginBottom: 10,
+	    borderWidth: 2,
+	    borderRadius: 5,
+	    borderColor: 'black',
+	    paddingHorizontal: 10,
+	    borderStyle: 'solid',
+	    backgroundColor: 'lavender',
+	},
+});
 
 AppRegistry.registerComponent("S3Sample", () => S3Sample);

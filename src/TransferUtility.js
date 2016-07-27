@@ -81,16 +81,17 @@ async function setTaskExtra(task, values, isNew) {
 }
 
 export default class TransferUtility {
-	async setupWithNative() {
+	async setupWithNative(subscribeProgress = true) {
 		const result = await RNS3TransferUtility.setupWithNative();
 		if (result) {
 			await getTaskExtras();
-			RNS3TransferUtility.initializeRNS3();
+			RNS3TransferUtility.initializeRNS3(subscribeProgress);
 		}
 		return result;
 	}
 
-	async setupWithBasic(options = {}) {
+	async setupWithBasic(options = {}, subscribeProgress = true) {
+		console.log(subscribeProgress);
 		if (!options.access_key || !options.secret_key) {
 			return false;
 		}
@@ -100,19 +101,19 @@ export default class TransferUtility {
 		const result = await RNS3TransferUtility.setupWithBasic({ ...defaultOptions, ...options});
 		if (result) {
 			await getTaskExtras();
-			RNS3TransferUtility.initializeRNS3();
+			RNS3TransferUtility.initializeRNS3(subscribeProgress);
 		}
 		return result;
 	}
 
-	async setupWithCognito(options = {}) {
+	async setupWithCognito(options = {}, subscribeProgress = true) {
 		if (!options.identity_pool_id) {
 			return false;
 		}
 		const result = await RNS3TransferUtility.setupWithBasic({ ...defaultCognitoOptions, ...options });
 		if (result) {
 			await getTaskExtras();
-			RNS3TransferUtility.initializeRNS3();
+			RNS3TransferUtility.initializeRNS3(subscribeProgress);
 		}
 		return result;
 	}
