@@ -91,7 +91,6 @@ export default class TransferUtility {
 	}
 
 	async setupWithBasic(options = {}, subscribeProgress = true) {
-		console.log(subscribeProgress);
 		if (!options.access_key || !options.secret_key) {
 			return false;
 		}
