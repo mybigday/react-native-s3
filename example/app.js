@@ -5,8 +5,7 @@ import React, {
 	Text,
 	View,
 	ScrollView,
-	TouchableHighlight,
-	DeviceEventEmitter
+	TouchableHighlight
 } from "react-native";
 import { transferUtility } from "react-native-s3";
 import fs from "react-native-fs";
@@ -28,13 +27,13 @@ const cognitoOptions = {
 	"identity_pool_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 	"cognito_region": "us-east-1",
 	"caching": true
-}
+};
 
 const keySecretOptions = {
 	"access_key": "xxxx",
 	"secret_key": "xxxxxxxxxxxxx",
-	"region": "us-east-1",
-}
+	"region": "us-east-1"
+};
 
 const sampleVideoURL = "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4";
 
@@ -44,17 +43,18 @@ class S3Sample extends Component {
 
 		this.state = {
 			initLoaded: false,
-			logText: "",
+			logText: ""
 		};
 	}
 
 	async componentDidMount() {
 		if (!this.state.initLoaded) {
 			if (!await fs.exists(uploadFilePath)) {
-				await fs.downloadFile(sampleVideoURL, uploadFilePath).then(res => {
+				await fs.downloadFile(sampleVideoURL, uploadFilePath).then(() => {
 				    fs.readDir(fs.DocumentDirectoryPath)
-				    .then((result) => {
-					    // Confirm that the file was written
+					.then((result) => {
+						// Confirm that the file was written
+						console.log(result);
 					});
 				});
 			}
@@ -81,29 +81,29 @@ class S3Sample extends Component {
 
 	handleEvent = (eventType, task) => {
 		switch(eventType) {
-			case '@_RNS3_State_Changed':
-				if (task.state == 'completed' && transferAction == 'Download') {
-					this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \nDownload complete \nFile location: ${ fs.DocumentDirectoryPath }` });	
-				} else if (task.state == 'completed' && transferAction == 'Upload') {
-					this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \nUpload complete \ns3 file location: ${ bucketName }/${ uploadFileKey }` });	
-				} else { this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \n` }); }
-				break;
-			case '@_RNS3_Progress_Changed':
-				this.setState({ logText: `${ this.state.logText }Progress_Changed: ${ task.bytes/task.totalBytes * 100 }% \n` });
-				break;
-			case '@_RNS3_Error':
-				this.setState({ logText: `${ this.state.logText }Error: ${ task.errMessage } \n\n` });
-				break;
-			default: 
-				console.warn("Receiving event that doesn't match case");
-				break;
+		case "@_RNS3_State_Changed":
+			if (task.state == "completed" && transferAction == "Download") {
+				this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \nDownload complete \nFile location: ${ fs.DocumentDirectoryPath }` });	
+			} else if (task.state == "completed" && transferAction == "Upload") {
+				this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \nUpload complete \ns3 file location: ${ bucketName }/${ uploadFileKey }` });	
+			} else { this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \n` }); }
+			break;
+		case "@_RNS3_Progress_Changed":
+			this.setState({ logText: `${ this.state.logText }Progress_Changed: ${ task.bytes/task.totalBytes * 100 }% \n` });
+			break;
+		case "@_RNS3_Error":
+			this.setState({ logText: `${ this.state.logText }Error: ${ task.errMessage } \n\n` });
+			break;
+		default: 
+			console.warn("Receiving event that doesn't match case");
+			break;
 		}		
 	};
 
 	subscribeWithUpdateState = (id, typeKey) => {
 		transferUtility.subscribe(id, (err, task) => {
 			if (err != undefined) task.errMessage = err;
-			this.handleEvent(task.eventIdentifier, task)
+			this.handleEvent(task.eventIdentifier, task);
 			this.setState({
 				[typeKey]: {
 					...this.state[typeKey],
@@ -175,22 +175,22 @@ class S3Sample extends Component {
 
 	render() {
 		return (
-			<View style={ styles.container }>
+			<View style={styles.container}>
 				<TouchableHighlight onPress={this.handleDownloadFile}>
-					<Text style={styles.btn}>Download Designated File</Text>
+					<Text style={styles.btn}>{"Download Designated File"}</Text>
 				</TouchableHighlight>
 				<TouchableHighlight onPress={this.handleUploadFile}>
-					<Text style={styles.btn}>Upload Designated File</Text>
+					<Text style={styles.btn}>{"Upload Designated File"}</Text>
 				</TouchableHighlight>
 				<ScrollView 
-		        ref='scrollView'
-		        style={ styles.logContainer }
-		        onContentSizeChange={ (width, height) => { this.refs.scrollView.scrollTo({ y: height }) } }>
-		            <Text
-		            style={ styles.logText }>
-		                { this.state.logText }
-		            </Text>
-		        </ScrollView>
+					ref="scrollView"
+					style={styles.logContainer}
+					onContentSizeChange={(width, height) => {this.refs.scrollView.scrollTo({ y: height })};}>
+					<Text
+						style={styles.logText}>
+						{this.state.logText}
+					</Text>
+				</ScrollView>
 			</View>
 		);
 	}
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		marginTop: 20,
-		alignItems: 'center',
+		alignItems: "center",
 		backgroundColor: "#F5FCFF"
 	},
 	title: {
@@ -213,8 +213,8 @@ const styles = StyleSheet.create({
 		justifyContent: "center"
 	},
 	logText: {
-	    alignItems: 'center',
-	    paddingBottom: 20,
+		alignItems: "center",
+		paddingBottom: 20
 	},
 	text: {
 		fontSize: 12,
@@ -227,16 +227,16 @@ const styles = StyleSheet.create({
 		margin: 10
 	},
 	logContainer: {
-	    flex: 1,
-	    width: 350,
-	    marginBottom: 10,
-	    borderWidth: 2,
-	    borderRadius: 5,
-	    borderColor: 'black',
-	    paddingHorizontal: 10,
-	    borderStyle: 'solid',
-	    backgroundColor: 'lavender',
-	},
+		flex: 1,
+		width: 350,
+		marginBottom: 10,
+		borderWidth: 2,
+		borderRadius: 5,
+		borderColor: "black",
+		paddingHorizontal: 10,
+		borderStyle: 'solid',
+		backgroundColor: "lavender"
+	}
 });
 
 AppRegistry.registerComponent("S3Sample", () => S3Sample);
