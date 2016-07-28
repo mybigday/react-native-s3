@@ -23,7 +23,14 @@ var transferAction = "";
 
 
 // aws access keys and region
-const options = {
+const cognitoOptions = {
+	"region": "us-east-1",
+	"identity_pool_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+	"cognito_region": "us-east-1",
+	"caching": true
+}
+
+const keySecretOptions = {
 	"access_key": "xxxx",
 	"secret_key": "xxxxxxxxxxxxx",
 	"region": "us-east-1",
@@ -52,15 +59,14 @@ class S3Sample extends Component {
 				});
 			}
 
-			// Set up with basic options set, or with options set in the native code
-			await transferUtility.setupWithBasic(options, subscribeProgress);
+			// Set up with cognito options
+			await transferUtility.setupWithCognito(cognitoOptions, subscribeProgress);
+
+			// Set up with basic (standard) options
+			// await transferUtility.setupWithBasic(keySecretOptions, subscribeProgress);
 
 			const uploadTasks = await transferUtility.getTasks("upload", true);
 			const downloadTasks = await transferUtility.getTasks("download", true);
-
-			DeviceEventEmitter.addListener('State_Changed', result => this.handleEvent('State_Changed', result));
-    		DeviceEventEmitter.addListener('Progress_Changed', result => this.handleEvent('Progress_Changed', result));
-			DeviceEventEmitter.addListener('Error', result => this.handleEvent('Error', result));
 
 			for (const id in uploadTasks) {
 				this.subscribeWithUpdateState(id, "uploadTasks");
@@ -73,20 +79,20 @@ class S3Sample extends Component {
 		}
 	}
 
-	handleEvent = (eventType, result) => {
+	handleEvent = (eventType, task) => {
 		switch(eventType) {
-			case 'State_Changed':
-				if (result.task.state == 'completed' && transferAction == 'Download') {
-					this.setState({ logText: `${ this.state.logText }State_Changed: ${ result.task.state } \nDownload complete \nFile location: ${ fs.DocumentDirectoryPath }` });	
-				} else if (result.task.state == 'completed' && transferAction == 'Upload') {
-					this.setState({ logText: `${ this.state.logText }State_Changed: ${ result.task.state } \nUpload complete \ns3 file location: ${ bucketName }/${ uploadFileKey }` });	
-				} else { this.setState({ logText: `${ this.state.logText }State_Changed: ${ result.task.state } \n` }); }
+			case '@_RNS3_State_Changed':
+				if (task.state == 'completed' && transferAction == 'Download') {
+					this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \nDownload complete \nFile location: ${ fs.DocumentDirectoryPath }` });	
+				} else if (task.state == 'completed' && transferAction == 'Upload') {
+					this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \nUpload complete \ns3 file location: ${ bucketName }/${ uploadFileKey }` });	
+				} else { this.setState({ logText: `${ this.state.logText }State_Changed: ${ task.state } \n` }); }
 				break;
-			case 'Progress_Changed':
-				this.setState({ logText: `${ this.state.logText }Progress_Changed: ${ result.task.bytes/result.task.totalBytes * 100 }% \n` });
+			case '@_RNS3_Progress_Changed':
+				this.setState({ logText: `${ this.state.logText }Progress_Changed: ${ task.bytes/task.totalBytes * 100 }% \n` });
 				break;
-			case 'Error':
-				this.setState({ logText: `${ this.state.logText }Error: ${ result.error } \n\n` });
+			case '@_RNS3_Error':
+				this.setState({ logText: `${ this.state.logText }Error: ${ task.errMessage } \n\n` });
 				break;
 			default: 
 				console.warn("Receiving event that doesn't match case");
@@ -96,7 +102,8 @@ class S3Sample extends Component {
 
 	subscribeWithUpdateState = (id, typeKey) => {
 		transferUtility.subscribe(id, (err, task) => {
-			if (err) task.errMessage = err;
+			if (err != undefined) task.errMessage = err;
+			this.handleEvent(task.eventIdentifier, task)
 			this.setState({
 				[typeKey]: {
 					...this.state[typeKey],
@@ -120,7 +127,8 @@ class S3Sample extends Component {
 			uploadTasks: {
 				...this.state.uploadTasks,
 				...{ [task.id]: task }
-			}
+			},
+			logText: `${ this.state.logText }\nUpload Started To s3 Location:\n${ bucketName }/${ uploadFileKey } \n\n`
 		});
 		this.subscribeWithUpdateState(task.id, "uploadTasks");
 	};
@@ -136,7 +144,8 @@ class S3Sample extends Component {
 			downloadTasks: {
 				...this.state.downloadTasks,
 				...{ [task.id]: task }
-			}
+			},
+			logText: `${ this.state.logText }\nDownload Started For File At s3 Location:\n${ bucketName }/${ downloadFileKey } \n\n`
 		});
 		this.subscribeWithUpdateState(task.id, "downloadTasks");
 	};

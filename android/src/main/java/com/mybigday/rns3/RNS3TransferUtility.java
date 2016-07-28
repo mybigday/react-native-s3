@@ -47,7 +47,7 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
   private Context context;
   private AmazonS3 s3;
   private TransferUtility transferUtility;
-  private Boolean subscribeProgress;
+  private Boolean subscribeProgress = true;
 
   public RNS3TransferUtility(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -95,9 +95,7 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
         TransferObserver task = transferUtility.getTransferById(id);
         WritableMap result = Arguments.createMap();
         result.putMap("task", convertTransferObserver(task));
-        getReactApplicationContext()
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("State_Changed", result);
+        sendEvent("@_RNS3_State_Changed", result);
       }
 
       @Override
@@ -110,9 +108,7 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
                 taskMap.putDouble("bytes", bytesCurrent);
               }
               result.putMap("task", taskMap);
-              getReactApplicationContext()
-                      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                      .emit("Progress_Changed", result);
+              sendEvent("@_RNS3_Progress_Changed", result);
           }
       }
 
@@ -122,9 +118,7 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
         WritableMap result = Arguments.createMap();
         result.putMap("task", convertTransferObserver(task));
         result.putString("error", ex.getMessage());
-        getReactApplicationContext()
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("Error", result);
+        sendEvent("@_RNS3_Error", result);
       }
     });
   }
@@ -160,14 +154,14 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
         }
         break;
       // TODO: support accountId, unauthRoleArn, authRoleArn
-      case COGNITO:
+      case COGNITO:   
         String cognitoRegion = (String) credentialsOptions.get("cognito_region");
         if (!(Boolean) credentialsOptions.get("caching")) {
           credentialsProvider = new CognitoCredentialsProvider(
             (String) credentialsOptions.get("identity_pool_id"),
             Regions.fromName(cognitoRegion)
           );
-        } else {
+        } else {        
           credentialsProvider = new CognitoCachingCredentialsProvider(
             context,
             (String) credentialsOptions.get("identity_pool_id"),
@@ -262,7 +256,6 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
     String bucket = options.getString("bucket");
     String key = options.getString("key");
     File file = new File(options.getString("file"));
-
     TransferObserver task = transferUtility.download(bucket, key, file);
     subscribe(task);
     promise.resolve(convertTransferObserver(task));
