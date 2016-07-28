@@ -185,7 +185,7 @@ class S3Sample extends Component {
 				<ScrollView 
 					ref="scrollView"
 					style={styles.logContainer}
-					onContentSizeChange={(width, height) => {this.refs.scrollView.scrollTo({ y: height })};}>
+					onContentSizeChange={(width, height) => {this.refs.scrollView.scrollTo({ y: height })}}>
 					<Text
 						style={styles.logText}>
 						{this.state.logText}
