@@ -21,7 +21,7 @@ const subscribeProgress = true; // Change to false if you don't want to subscrib
 var transferAction = "";
 
 
-// aws access keys and region
+// aws cognito options
 const cognitoOptions = {
 	"region": "us-east-1",
 	"identity_pool_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -29,11 +29,12 @@ const cognitoOptions = {
 	"caching": true
 };
 
-const keySecretOptions = {
-	"access_key": "xxxx",
-	"secret_key": "xxxxxxxxxxxxx",
-	"region": "us-east-1"
-};
+// aws access keys and region options for basic s3 use
+// const keySecretOptions = {
+// 	"access_key": "xxxx",
+// 	"secret_key": "xxxxxxxxxxxxx",
+// 	"region": "us-east-1"
+// };
 
 const sampleVideoURL = "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4";
 
@@ -51,7 +52,7 @@ class S3Sample extends Component {
 		if (!this.state.initLoaded) {
 			if (!await fs.exists(uploadFilePath)) {
 				await fs.downloadFile(sampleVideoURL, uploadFilePath).then(() => {
-				    fs.readDir(fs.DocumentDirectoryPath)
+					fs.readDir(fs.DocumentDirectoryPath)
 					.then((result) => {
 						// Confirm that the file was written
 						console.log(result);
@@ -185,7 +186,7 @@ class S3Sample extends Component {
 				<ScrollView 
 					ref="scrollView"
 					style={styles.logContainer}
-					onContentSizeChange={(width, height) => {this.refs.scrollView.scrollTo({ y: height })}}>
+					onContentSizeChange={(width, height) => {this.refs.scrollView.scrollTo({ y: height });}}>
 					<Text
 						style={styles.logText}>
 						{this.state.logText}
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
 		borderRadius: 5,
 		borderColor: "black",
 		paddingHorizontal: 10,
-		borderStyle: 'solid',
+		borderStyle: "solid",
 		backgroundColor: "lavender"
 	}
 });
