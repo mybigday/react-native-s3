@@ -110,6 +110,7 @@ Subscribe the task changes with the given id.
 
 * `id` Number - a Task id
 * `eventHandler` Function - arguments:
+  * `err` Object - error information object or null if no error 
   * `task` Object - a [Task](#the-task-object-structure) object
 
 #### `transferUtility.unsubscribe(id)`
