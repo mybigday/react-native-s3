@@ -3,6 +3,7 @@
 
 static NSMutableDictionary *nativeCredentialsOptions;
 static bool alreadyInitialize = false;
+static bool subscribeProgress;
 
 @interface RNS3TransferUtility ()
 
@@ -130,18 +131,12 @@ RCT_EXPORT_METHOD(setupWithCognito: (NSDictionary *)options resolver:(RCTPromise
   resolve(@([self setup:options]));
 }
 
-- (void) sendEvent:(AWSS3TransferUtilityTask *)task type:(NSString *)type state:(NSString *)state bytes:(int64_t)bytes totalBytes:(int64_t)totalBytes error:(NSError *)error {
+- (void) sendEvent:(AWSS3TransferUtilityTask *)task type:(NSString *)type state:(NSString *)state bytes:(int64_t)bytes totalBytes:(int64_t)totalBytes error:(NSError *)error label:(NSString *)label {
   NSDictionary *errorObj = nil;
   if (error) {
-    errorObj = @{
-      @"domain":[error domain],
-      @"code": @([error code]),
-      @"description": [error localizedDescription]
-    };
-  }
-  
-  [self.bridge.eventDispatcher
-    sendAppEventWithName:@"@_RNS3_Events"
+    errorObj = [error localizedDescription];
+    [self.bridge.eventDispatcher
+    sendAppEventWithName:@"@_RNS3_Error"
     body:@{
       @"task":@{
         @"id":@([task taskIdentifier]),
@@ -153,20 +148,40 @@ RCT_EXPORT_METHOD(setupWithCognito: (NSDictionary *)options resolver:(RCTPromise
       },
       @"type":type,
       @"error":errorObj ? errorObj : [NSNull null]
-    }];
+    }];  
+  } else {
+    [self.bridge.eventDispatcher
+      sendAppEventWithName:label
+      body:@{
+        @"task":@{
+          @"id":@([task taskIdentifier]),
+          // @"bucket":[task bucket],
+          // @"key":[task key],
+          @"state":state,
+          @"bytes":@(bytes),
+          @"totalBytes":@(totalBytes)
+        },
+        @"type":type,
+        @"error":errorObj ? errorObj : [NSNull null]
+      }];
+  }
 }
 
-RCT_EXPORT_METHOD(initializeRNS3) {
+RCT_EXPORT_METHOD(initializeRNS3: (bool)subscribeProgressValue) {
   if (alreadyInitialize) return;
   alreadyInitialize = true;
+  subscribeProgress = subscribeProgressValue;
   self.uploadProgress = ^(AWSS3TransferUtilityTask *task, NSProgress *progress) {
     NSLog(@"update");
-    [self sendEvent:task
-               type:@"upload"
-              state:@"in_progress"
-              bytes:progress.completedUnitCount
-         totalBytes:progress.totalUnitCount
-              error:nil];
+    if (subscribeProgress == true) {
+      [self sendEvent:task
+                 type:@"upload"
+                state:@"in_progress"
+                bytes:progress.completedUnitCount
+           totalBytes:progress.totalUnitCount
+                error:nil
+                label:@"@_RNS3_Progress_Changed"];
+    }
   };
   self.completionUploadHandler = ^(AWSS3TransferUtilityUploadTask *task, NSError *error) {
     NSString *state;
@@ -176,16 +191,20 @@ RCT_EXPORT_METHOD(initializeRNS3) {
               state:state
               bytes:0
          totalBytes:0
-              error:error];
+              error:error
+              label:@"@_RNS3_State_Changed"];
   };
   
   self.downloadProgress = ^(AWSS3TransferUtilityTask *task, NSProgress *progress) {
-    [self sendEvent:task
-               type:@"download"
-              state:@"in_progress"
-              bytes:progress.completedUnitCount
-         totalBytes:progress.totalUnitCount
-              error:nil];
+    if (subscribeProgress == true) {
+      [self sendEvent:task
+                 type:@"download"
+                state:@"in_progress"
+                bytes:progress.completedUnitCount
+           totalBytes:progress.totalUnitCount
+                error:nil
+                label:@"@_RNS3_Progress_Changed"];
+    }
   };
   self.completionDownloadHandler = ^(AWSS3TransferUtilityDownloadTask *task, NSURL *location, NSData *data, NSError *error) {
     NSString *state;
@@ -195,7 +214,8 @@ RCT_EXPORT_METHOD(initializeRNS3) {
               state:state
               bytes:0
          totalBytes:0
-              error:error];
+              error:error
+              label:@"@_RNS3_State_Changed"];
   };
   
   AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
