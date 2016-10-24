@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [[ "$CI" == "1" ]]; then
+  exit
+fi
+
 VERSION=$1
 
 echo "Downloading AWS iOS SDK $VERSION..."
