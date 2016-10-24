@@ -210,9 +210,9 @@ export default class TransferUtility {
 		if (!listeners[id]) {
 			listeners[id] = [];
 		}
-		const listeners = listeners[id];
-		if (listeners.indexOf(eventHandler) < 0) {
-			listeners.push(eventHandler);
+		const listenersForTask = listeners[id];
+		if (listenersForTask.indexOf(eventHandler) < 0) {
+			listenersForTask.push(eventHandler);
 		}
 	}
 
@@ -222,10 +222,10 @@ export default class TransferUtility {
 			delete listeners[id];
 			return;
 		}
-		const listeners = listeners[id];
-		const index = listeners.indexOf(eventHandler);
+		const listenersForTask = listeners[id];
+		const index = listenersForTask.indexOf(eventHandler);
 		if (index > 0) {
-			listeners.splice(index, 1);
+			listenersForTask.splice(index, 1);
 		}
 	}
 }
