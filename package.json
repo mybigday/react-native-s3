@@ -9,8 +9,9 @@
     "src/"
   ],
   "scripts": {
-    "lint": "eslint src/*.js example/*.js",
-    "prepublish": "./scripts/download-ios.sh 2.4.11 && rm -rf ./ios/RNS3.xcodeproj/xcuserdata ./ios/RNS3.xcodeproj/project.xcworkspace"
+    "lint": "eslint src test example/*.js",
+    "test": "npm run lint && mocha",
+    "prepublish": "npm test && ./scripts/download-ios.sh 2.4.11 && rm -rf ./ios/RNS3.xcodeproj/xcuserdata ./ios/RNS3.xcodeproj/project.xcworkspace"
   },
   "repository": {
     "type": "git",
@@ -32,9 +33,17 @@
     "react-native-simple-store": "^1.0.1"
   },
   "devDependencies": {
+    "babel-core": "^6.17.0",
     "babel-eslint": "^5.0.0",
+    "babel-polyfill": "^6.16.0",
+    "babel-preset-react-native": "^1.9.0",
     "eslint": "~2.2.0",
     "eslint-config-mybigday": "0.0.1",
-    "eslint-plugin-react": "^4.1.0"
+    "eslint-plugin-react": "^4.1.0",
+    "expect": "^1.20.2",
+    "mocha": "^3.1.2",
+    "react": "^15.3.2",
+    "react-native": "^0.35.0",
+    "react-native-mock": "^0.2.7"
   }
 }

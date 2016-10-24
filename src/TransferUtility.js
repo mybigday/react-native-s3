@@ -47,7 +47,12 @@ EventEmitter.addListener("@_RNS3_Events", async event => {
 });
 
 async function getTaskExtras() {
-	taskExtras = await store.get(storeKey) || {};
+	try {
+		// https://github.com/lelandrichardson/react-native-mock/pull/106
+		taskExtras = await store.get(storeKey) || {};
+	} catch (e) {
+		taskExtras = {};
+	}
 	return taskExtras;
 }
 
