@@ -130,7 +130,7 @@ RCT_EXPORT_METHOD(setupWithBasic: (NSDictionary *)options resolver:(RCTPromiseRe
 RCT_EXPORT_METHOD(setupWithCognito: (NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
   NSMutableDictionary * mOptions = [options mutableCopy];
   [mOptions setObject:[NSNumber numberWithInt:COGNITO] forKey:@"type"];
-  resolve(@([self setup:options]));
+  resolve(@([self setup:mOptions]));
 }
 
 RCT_EXPORT_METHOD(enableProgressSent: (BOOL)enabled resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
