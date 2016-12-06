@@ -2,8 +2,7 @@
 #import "RNS3STSCredentialsProvider.h"
 
 static NSMutableDictionary *nativeCredentialsOptions;
-static bool alreadyInitialize = false;
-static bool enabledProgress = true;
+static bool enabledProgress = YES;
 
 @interface RNS3TransferUtility ()
 
@@ -12,6 +11,8 @@ static bool enabledProgress = true;
 
 @property (copy, nonatomic) AWSS3TransferUtilityDownloadCompletionHandlerBlock completionDownloadHandler;
 @property (copy, nonatomic) AWSS3TransferUtilityProgressBlock downloadProgress;
+
+@property (copy, nonatomic) NSString* transferUtilityKey;
 
 @end
 
@@ -105,13 +106,15 @@ static bool enabledProgress = true;
         default:
             return NO;
     }
-    
+
+    _transferUtilityKey = [[NSProcessInfo processInfo] globallyUniqueString];
+
     AWSRegionType region = [self regionTypeFromString:options[@"region"]];
     AWSServiceConfiguration *configuration = [[AWSServiceConfiguration alloc] initWithRegion:region
                                                                          credentialsProvider:credentialsProvider];
-    
+
     [AWSS3TransferUtility registerS3TransferUtilityWithConfiguration:configuration
-                                                              forKey:@"RNS3TransferUtility"];
+                                                              forKey:_transferUtilityKey];
     return YES;
 }
 
@@ -155,7 +158,7 @@ RCT_EXPORT_METHOD(enableProgressSent: (BOOL)enabled resolver:(RCTPromiseResolveB
     sendAppEventWithName:@"@_RNS3_Events"
     body:@{
       @"task":@{
-        @"id":@([task taskIdentifier]),
+        @"id":[NSString stringWithFormat:@"%@-%@", _transferUtilityKey, @([task taskIdentifier])],
         // @"bucket":[task bucket],
         // @"key":[task key],
         @"state":state,
@@ -168,8 +171,6 @@ RCT_EXPORT_METHOD(enableProgressSent: (BOOL)enabled resolver:(RCTPromiseResolveB
 }
 
 RCT_EXPORT_METHOD(initializeRNS3) {
-  if (alreadyInitialize) return;
-  alreadyInitialize = NO;
   self.uploadProgress = ^(AWSS3TransferUtilityTask *task, NSProgress *progress) {
     [self sendEvent:task
                type:@"upload"
@@ -208,7 +209,7 @@ RCT_EXPORT_METHOD(initializeRNS3) {
               error:error];
   };
   
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:_transferUtilityKey];
   [transferUtility
     enumerateToAssignBlocksForUploadTask:^(AWSS3TransferUtilityUploadTask * _Nonnull uploadTask,
       AWSS3TransferUtilityProgressBlock  _Nullable __autoreleasing * _Nullable uploadProgressBlockReference,
@@ -241,7 +242,7 @@ RCT_EXPORT_METHOD(upload: (NSDictionary *)options resolver:(RCTPromiseResolveBlo
 
   expression.progressBlock = self.uploadProgress;
 
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:_transferUtilityKey];
   [[transferUtility uploadFile:fileURL
                         bucket:[options objectForKey:@"bucket"]
                            key:[options objectForKey:@"key"]
@@ -255,7 +256,7 @@ RCT_EXPORT_METHOD(upload: (NSDictionary *)options resolver:(RCTPromiseResolveBlo
     } else if (task.result) {
       AWSS3TransferUtilityUploadTask *uploadTask = task.result;
       resolve(@{
-        @"id": @([uploadTask taskIdentifier]),
+        @"id": [NSString stringWithFormat:@"%@-%@", _transferUtilityKey, @([uploadTask taskIdentifier])],
         // @"bucket": [uploadTask bucket],
         // @"key": [uploadTask key],
         @"state":@"waiting"
@@ -271,7 +272,7 @@ RCT_EXPORT_METHOD(download: (NSDictionary *)options resolver:(RCTPromiseResolveB
   AWSS3TransferUtilityDownloadExpression *expression = [AWSS3TransferUtilityDownloadExpression new];
   expression.progressBlock = self.downloadProgress;
 
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:_transferUtilityKey];
   [[transferUtility downloadToURL:fileURL
                            bucket:[options objectForKey:@"bucket"]
                               key:[options objectForKey:@"key"]
@@ -284,7 +285,7 @@ RCT_EXPORT_METHOD(download: (NSDictionary *)options resolver:(RCTPromiseResolveB
     } else if (task.result) {
       AWSS3TransferUtilityDownloadTask *downloadTask = task.result;
       resolve(@{
-        @"id": @([downloadTask taskIdentifier]),
+        @"id": [NSString stringWithFormat:@"%@-%@", _transferUtilityKey, @([downloadTask taskIdentifier])],
         //@"bucket":[downloadTask bucket],
         //@"key":[downloadTask key],
         @"state":@"waiting"
@@ -345,7 +346,7 @@ RCT_EXPORT_METHOD(cancel:(int64_t)taskIdentifier) {
 
 - (void) taskById:(int64_t)taskIdentifier completionHandler:(void(^)(NSDictionary *))handler {
   __block NSDictionary *result = [NSNull null];
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:_transferUtilityKey];
   [[[transferUtility getUploadTasks] continueWithBlock:^id(AWSTask *task) {
     if (task.result) {
       NSArray<AWSS3TransferUtilityUploadTask*> *uploadTasks = task.result;
@@ -384,7 +385,7 @@ RCT_EXPORT_METHOD(getTask:(int64_t)taskIdentifier resolver:(RCTPromiseResolveBlo
     if (result) {
       AWSS3TransferUtilityTask *task = [result objectForKey:@"task"];
       resolve(@{
-        @"id":@([task taskIdentifier]),
+        @"id": [NSString stringWithFormat:@"%@-%@", _transferUtilityKey, @([task taskIdentifier])],
         //@"bucket":[task bucket],
         //@"key":[task key],
       });
@@ -395,7 +396,7 @@ RCT_EXPORT_METHOD(getTask:(int64_t)taskIdentifier resolver:(RCTPromiseResolveBlo
 }
 
 RCT_EXPORT_METHOD(getTasks:(NSString *)type resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:_transferUtilityKey];
   NSMutableArray *result = [[NSMutableArray alloc] init];
   if ([type isEqualToString:@"upload"]) {
     [[transferUtility getUploadTasks] continueWithBlock:^id(AWSTask *task) {
@@ -403,7 +404,7 @@ RCT_EXPORT_METHOD(getTasks:(NSString *)type resolver:(RCTPromiseResolveBlock)res
         NSArray<AWSS3TransferUtilityUploadTask*> *uploadTasks = task.result;
         for (AWSS3TransferUtilityUploadTask *task in uploadTasks) {
           [result addObject:@{
-            @"id":@([task taskIdentifier]),
+            @"id": [NSString stringWithFormat:@"%@-%@", _transferUtilityKey, @([task taskIdentifier])],
             // @"bucket":[task bucket],
             // @"key":[task key],
           }];
@@ -420,7 +421,7 @@ RCT_EXPORT_METHOD(getTasks:(NSString *)type resolver:(RCTPromiseResolveBlock)res
         NSArray<AWSS3TransferUtilityDownloadTask*> *downloadTasks = task.result;
         for (AWSS3TransferUtilityDownloadTask *task in downloadTasks) {
           [result addObject:@{
-            @"id":@([task taskIdentifier]),
+            @"id": [NSString stringWithFormat:@"%@-%@", _transferUtilityKey, @([task taskIdentifier])],
             // @"bucket":[task bucket],
             // @"key":[task key],
           }];
