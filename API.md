@@ -18,6 +18,7 @@ Return: Promise - will resolve arguments:
   * `access_key` String - the AWS access key ID
   * `secret_key` String - the AWS secret access key
   * `session_token` String - (optional)
+  * `remember_last_instance` Boolean - keep the last transferUtility instance when JS reload (default: true) __(iOS)__
 
 Return: Promise - will resolve arguments:
 * Boolean - `true` or `false` depending on the setup successful.
@@ -29,6 +30,7 @@ Return: Promise - will resolve arguments:
   * `identity_pool_id` String - the Amazon Cogntio identity pool
   * `cognito_region` String - a Cognito Region (default: eu-west-1)
   * `caching` Boolean - use `CognitoCachingCredentialsProvider` instead of `CognitoCredentialsProvider` __(Android)__
+  * `remember_last_instance` Boolean - keep the last transferUtility instance when JS reload (default: true) __(iOS)__
 
 See AWS CognitoCredentialsProvider ([iOS](http://docs.aws.amazon.com/AWSiOSSDK/latest/Classes/AWSCognitoCredentialsProvider.html)/[Android](http://docs.aws.amazon.com/AWSAndroidSDK/latest/javadoc/com/amazonaws/auth/CognitoCredentialsProvider.html)) for more information.
 
