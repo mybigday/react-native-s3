@@ -6,6 +6,7 @@ const { RNS3TransferUtility } = NativeModules;
 
 const transferTypes = ["upload", "download"];
 const defaultOptions = {
+	remember_last_instance: true,
 	region: "eu-west-1"
 };
 const defaultCognitoOptions = {

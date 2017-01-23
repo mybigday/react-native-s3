@@ -4,6 +4,7 @@
 static NSMutableDictionary *nativeCredentialsOptions;
 static bool alreadyInitialize = false;
 static bool enabledProgress = true;
+static NSString* instanceKey = @"RNS3TransferUtility";
 
 @interface RNS3TransferUtility ()
 
@@ -27,6 +28,7 @@ static bool enabledProgress = true;
   // default options
   [nativeCredentialsOptions setObject:@"eu-west-1" forKey:@"region"];
   [nativeCredentialsOptions setObject:@"eu-west-1" forKey:@"cognito_region"];
+  [nativeCredentialsOptions setObject:@YES forKey:@"remember_last_instance"];
   return nativeCredentialsOptions;
 };
 
@@ -73,6 +75,18 @@ static bool enabledProgress = true;
 }
 
 - (BOOL)setup:(NSDictionary *)options {
+    /*
+     * We need keep last instance, otherwise JS reload will break background tasks
+     * If you need setup again with different config, just set `remember_last_instance` to false
+     */
+    BOOL rememberLastInstance = options[@"remember_last_instance"];
+    AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:instanceKey];
+    if (rememberLastInstance && transferUtility) {
+        return YES;
+    } else if (transferUtility) {
+        [AWSS3TransferUtility removeS3TransferUtilityForKey:instanceKey];
+    }
+
     CredentialType type = [options[@"type"] integerValue];
     id<AWSCredentialsProvider> credentialsProvider;
     
@@ -96,7 +110,7 @@ static bool enabledProgress = true;
         case COGNITO: {
             AWSRegionType region = [self regionTypeFromString:options[@"cognito_region"]];
             NSString *identityPoolId = options[@"identity_pool_id"];
-            
+
             credentialsProvider = [[AWSCognitoCredentialsProvider alloc] initWithRegionType:region
                                                                              identityPoolId:identityPoolId];
             
@@ -105,19 +119,20 @@ static bool enabledProgress = true;
         default:
             return NO;
     }
-    
+
     AWSRegionType region = [self regionTypeFromString:options[@"region"]];
     AWSServiceConfiguration *configuration = [[AWSServiceConfiguration alloc] initWithRegion:region
                                                                          credentialsProvider:credentialsProvider];
-    
+
     [AWSS3TransferUtility registerS3TransferUtilityWithConfiguration:configuration
-                                                              forKey:@"RNS3TransferUtility"];
+                                                              forKey:instanceKey];
     return YES;
 }
 
 RCT_EXPORT_MODULE();
 
 RCT_EXPORT_METHOD(setupWithNative: (RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+
   resolve(@([self setup:nativeCredentialsOptions]));
 }
 
@@ -130,7 +145,7 @@ RCT_EXPORT_METHOD(setupWithBasic: (NSDictionary *)options resolver:(RCTPromiseRe
 RCT_EXPORT_METHOD(setupWithCognito: (NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
   NSMutableDictionary * mOptions = [options mutableCopy];
   [mOptions setObject:[NSNumber numberWithInt:COGNITO] forKey:@"type"];
-  resolve(@([self setup:mOptions]));
+  resolve(@([self setup:options]));
 }
 
 RCT_EXPORT_METHOD(enableProgressSent: (BOOL)enabled resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
@@ -208,7 +223,7 @@ RCT_EXPORT_METHOD(initializeRNS3) {
               error:error];
   };
   
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:instanceKey];
   [transferUtility
     enumerateToAssignBlocksForUploadTask:^(AWSS3TransferUtilityUploadTask * _Nonnull uploadTask,
       AWSS3TransferUtilityProgressBlock  _Nullable __autoreleasing * _Nullable uploadProgressBlockReference,
@@ -241,7 +256,7 @@ RCT_EXPORT_METHOD(upload: (NSDictionary *)options resolver:(RCTPromiseResolveBlo
 
   expression.progressBlock = self.uploadProgress;
 
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:instanceKey];
   [[transferUtility uploadFile:fileURL
                         bucket:[options objectForKey:@"bucket"]
                            key:[options objectForKey:@"key"]
@@ -271,7 +286,7 @@ RCT_EXPORT_METHOD(download: (NSDictionary *)options resolver:(RCTPromiseResolveB
   AWSS3TransferUtilityDownloadExpression *expression = [AWSS3TransferUtilityDownloadExpression new];
   expression.progressBlock = self.downloadProgress;
 
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:instanceKey];
   [[transferUtility downloadToURL:fileURL
                            bucket:[options objectForKey:@"bucket"]
                               key:[options objectForKey:@"key"]
@@ -345,7 +360,7 @@ RCT_EXPORT_METHOD(cancel:(int64_t)taskIdentifier) {
 
 - (void) taskById:(int64_t)taskIdentifier completionHandler:(void(^)(NSDictionary *))handler {
   __block NSDictionary *result = [NSNull null];
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:instanceKey];
   [[[transferUtility getUploadTasks] continueWithBlock:^id(AWSTask *task) {
     if (task.result) {
       NSArray<AWSS3TransferUtilityUploadTask*> *uploadTasks = task.result;
@@ -395,7 +410,7 @@ RCT_EXPORT_METHOD(getTask:(int64_t)taskIdentifier resolver:(RCTPromiseResolveBlo
 }
 
 RCT_EXPORT_METHOD(getTasks:(NSString *)type resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
-  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:@"RNS3TransferUtility"];
+  AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:instanceKey];
   NSMutableArray *result = [[NSMutableArray alloc] init];
   if ([type isEqualToString:@"upload"]) {
     [[transferUtility getUploadTasks] continueWithBlock:^id(AWSTask *task) {
