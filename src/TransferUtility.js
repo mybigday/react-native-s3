@@ -1,6 +1,6 @@
 import { NativeModules, NativeAppEventEmitter, DeviceEventEmitter, Platform } from "react-native";
 import store from "react-native-simple-store";
-import { normalizeFilePath } from "./utils";
+import { normalizeFilePath, snakeCaseKeys } from "./utils";
 
 const { RNS3TransferUtility } = NativeModules;
 
@@ -98,13 +98,14 @@ export default class TransferUtility {
 	}
 
 	async setupWithBasic(options = {}) {
-		if (!options.access_key || !options.secret_key) {
+		const opts = snakeCaseKeys(options);
+		if (!opts.access_key || !opts.secret_key) {
 			return false;
 		}
 		if (Platform.OS === "android") {
-			options.session_token = options.session_token || null;
+			opts.session_token = opts.session_token || null;
 		}
-		const result = await RNS3TransferUtility.setupWithBasic({ ...defaultOptions, ...options});
+		const result = await RNS3TransferUtility.setupWithBasic({ ...defaultOptions, ...opts});
 		if (result) {
 			await getTaskExtras();
 			RNS3TransferUtility.initializeRNS3();
@@ -113,10 +114,11 @@ export default class TransferUtility {
 	}
 
 	async setupWithCognito(options = {}) {
-		if (!options.identity_pool_id) {
+		const opts = snakeCaseKeys(options);
+		if (!opts.identity_pool_id) {
 			return false;
 		}
-		const result = await RNS3TransferUtility.setupWithCognito({ ...defaultCognitoOptions, ...options });
+		const result = await RNS3TransferUtility.setupWithCognito({ ...defaultCognitoOptions, ...opts });
 		if (result) {
 			await getTaskExtras();
 			RNS3TransferUtility.initializeRNS3();
@@ -129,18 +131,19 @@ export default class TransferUtility {
 	}
 
 	async upload(options = {}, others = {}) {
-		options.meta = options.meta || {};
-		const { contentType } = options.meta;
+		const opts = snakeCaseKeys(options);
+		opts.meta = opts.meta || {};
+		const { contentType } = opts.meta;
 		if (contentType) {
-			options.meta["Content-Type"] = contentType;
+			opts.meta["Content-Type"] = contentType;
 		}
 		const task = await RNS3TransferUtility.upload({
-			...options,
-			file: normalizeFilePath(options.file)
+			...opts,
+			file: normalizeFilePath(opts.file)
 		});
 		const extra = {
-			bucket: options.bucket,
-			key: options.key,
+			bucket: opts.bucket,
+			key: opts.key,
 			others
 		};
 		if (Platform.OS === "ios") {
@@ -151,13 +154,14 @@ export default class TransferUtility {
 	}
 
 	async download(options = {}, others = {}) {
+		const opts = snakeCaseKeys(options);
 		const task = await RNS3TransferUtility.download({
 			...options,
-			file: normalizeFilePath(options.file)
+			file: normalizeFilePath(opts.file)
 		});
 		const extra = {
-			bucket: options.bucket,
-			key: options.key,
+			bucket: opts.bucket,
+			key: opts.key,
 			others
 		};
 		if (Platform.OS === "ios") {

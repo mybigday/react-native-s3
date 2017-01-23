@@ -30,7 +30,8 @@
     "extends": "mybigday"
   },
   "dependencies": {
-    "react-native-simple-store": "^1.0.1"
+    "react-native-simple-store": "^1.0.1",
+    "snake-case": "^2.1.0"
   },
   "devDependencies": {
     "babel-core": "^6.17.0",
