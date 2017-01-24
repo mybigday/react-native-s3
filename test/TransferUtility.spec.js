@@ -8,9 +8,9 @@ let downloadTaskStoreForNative = [];
 // Set RNS3TransferUtility mock
 NativeModules.RNS3TransferUtility = {
 	initializeRNS3: () => {},
-	setupWithNative: () => true,
-	setupWithBasic: () => {},
-	setupWithCognito: () => {},
+	setupWithNative: r => r,
+	setupWithBasic: r => r,
+	setupWithCognito: r => r,
 	enableProgressSent: () => {},
 	upload: () => {
 		const task = {
@@ -47,7 +47,15 @@ const delay = time => new Promise(resolve => setTimeout(resolve, time));
 describe("TransferUtility", () => {
 
 	before(async () => {
-		await transferUtility.setupWithNative();
+		expect(await transferUtility.setupWithBasic({
+			accessKey: "test",
+			secretKey: "test"
+		})).toEqual({
+			remember_last_instance: true,
+			region: "eu-west-1",
+			access_key: "test",
+			secret_key: "test"
+		});
 	});
 
 	afterEach(() => {
