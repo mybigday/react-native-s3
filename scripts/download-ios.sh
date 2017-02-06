@@ -1,6 +1,7 @@
 #!/bin/sh
 
-if [[ "$SKIP_DOWNLOAD_SDK" == "1" ]]; then
+file="./ios/Frameworks/AWSCore.framework"
+if [[ "$SKIP_DOWNLOAD_SDK_IF_EXISTS" == "1" ]] && [ -e "$file" ]; then
   exit
 fi
 

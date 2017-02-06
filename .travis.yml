@@ -12,7 +12,7 @@ before_install:
 
 install:
   - npm --version
-  - npm i
+  - SKIP_DOWNLOAD_SDK_IF_EXISTS=1 npm i
   - cd example && npm i && cd -
 
 script:
