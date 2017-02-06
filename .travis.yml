@@ -1,16 +1,19 @@
-sudo: false
-language: node_js
-node_js:
-  - "6"
-env:
-  - CXX=g++-4.8
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-4.8
+language: objective-c
+osx_image: xcode8.1
+
+cache:
+  directories:
+    - node_modules
+
+before_install:
+  - brew update
+  - brew outdated xctool || brew upgrade xctool
+
 install:
-  - npm install
+  - npm --version
+  - npm i
+  - cd example && npm i && cd -
+
 script:
   - npm test
+  - cd example && xcodebuild -scheme S3Sample -project ios/S3Sample.xcodeproj -configuration Release -sdk iphonesimulator -derivedDataPath ios/build
