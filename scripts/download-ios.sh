@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [[ "$CI" == "1" ]] || [[ "$SKIP_DOWNLOAD_SDK" == "1" ]]; then
+if [[ "$SKIP_DOWNLOAD_SDK" == "1" ]]; then
   exit
 fi
 
