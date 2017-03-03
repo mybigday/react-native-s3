@@ -70,6 +70,8 @@ static NSString* instanceKey = @"RNS3TransferUtility";
     regionType = AWSRegionSAEast1;
   } else if ([region isEqualToString:@"cn-north-1"]) {
     regionType = AWSRegionCNNorth1;
+  } else if ([region isEqualToString:@"ap-south-1"]) {
+    regionType = AWSRegionAPSouth1;
   }
   return regionType;
 }
@@ -89,13 +91,13 @@ static NSString* instanceKey = @"RNS3TransferUtility";
 
     CredentialType type = [options[@"type"] integerValue];
     id<AWSCredentialsProvider> credentialsProvider;
-    
+
     switch (type) {
         case BASIC: {
             NSString *accessKey = options[@"access_key"];
             NSString *secretKey = options[@"secret_key"];
             NSString *sessionKey = options[@"session_token"];
-            
+
             if (sessionKey) {
                 credentialsProvider = [[RNS3STSCredentialsProvider alloc] initWithAccessKey:accessKey
                                                                               secretKey:secretKey
@@ -104,7 +106,7 @@ static NSString* instanceKey = @"RNS3TransferUtility";
                 credentialsProvider = [[AWSStaticCredentialsProvider alloc] initWithAccessKey:accessKey
                                                                                     secretKey:secretKey];
             }
-            
+
             break;
         }
         case COGNITO: {
@@ -113,7 +115,7 @@ static NSString* instanceKey = @"RNS3TransferUtility";
 
             credentialsProvider = [[AWSCognitoCredentialsProvider alloc] initWithRegionType:region
                                                                              identityPoolId:identityPoolId];
-            
+
             break;
         }
         default:
@@ -162,7 +164,7 @@ RCT_EXPORT_METHOD(enableProgressSent: (BOOL)enabled resolver:(RCTPromiseResolveB
       @"description": [error localizedDescription]
     };
   }
-  
+
   if ([state isEqual: @"in_progress"] && !enabledProgress) {
     return;
   }
@@ -203,7 +205,7 @@ RCT_EXPORT_METHOD(initializeRNS3) {
          totalBytes:0
               error:error];
   };
-  
+
   self.downloadProgress = ^(AWSS3TransferUtilityTask *task, NSProgress *progress) {
     [self sendEvent:task
                type:@"download"
@@ -222,7 +224,7 @@ RCT_EXPORT_METHOD(initializeRNS3) {
          totalBytes:0
               error:error];
   };
-  
+
   AWSS3TransferUtility *transferUtility = [AWSS3TransferUtility S3TransferUtilityForKey:instanceKey];
   [transferUtility
     enumerateToAssignBlocksForUploadTask:^(AWSS3TransferUtilityUploadTask * _Nonnull uploadTask,
@@ -236,7 +238,7 @@ RCT_EXPORT_METHOD(initializeRNS3) {
       AWSS3TransferUtilityProgressBlock  _Nullable __autoreleasing * _Nullable downloadProgressBlockReference,
       AWSS3TransferUtilityDownloadCompletionHandlerBlock  _Nullable __autoreleasing * _Nullable completionHandlerReference
     ) {
-     
+
       *downloadProgressBlockReference = self.downloadProgress;
       *completionHandlerReference = self.completionDownloadHandler;
     }];
@@ -245,7 +247,7 @@ RCT_EXPORT_METHOD(initializeRNS3) {
 RCT_EXPORT_METHOD(upload: (NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
   NSURL *fileURL = [NSURL fileURLWithPath:[options objectForKey:@"file"]];
   NSDictionary *meta = [options objectForKey:@"meta"];
-  
+
   AWSS3TransferUtilityUploadExpression *expression = [AWSS3TransferUtilityUploadExpression new];
   if (meta) {
     for (id key in meta) {
