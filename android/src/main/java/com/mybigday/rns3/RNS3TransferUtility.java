@@ -26,6 +26,7 @@ import com.facebook.react.bridge.Promise;
 
 import com.amazonaws.services.s3.*;
 import com.amazonaws.mobileconnectors.s3.transferutility.*;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.bridge.WritableArray;
@@ -234,9 +235,42 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
   public void upload(ReadableMap options, Promise promise) {
     String bucket = options.getString("bucket");
     String key = options.getString("key");
+    String acl = options.getString("acl");
     File file = new File(options.getString("file"));
     ReadableMap meta = options.getMap("meta");
     ObjectMetadata metaData = new ObjectMetadata();
+    CannedAccessControlList _acl;
+
+    if (acl != null) {
+      switch (acl) {
+        case "private":
+          _acl = CannedAccessControlList.Private;
+          break;
+        case "public-read":
+          _acl = CannedAccessControlList.PublicRead;
+          break;
+        case "public-read-write":
+          _acl = CannedAccessControlList.PublicReadWrite;
+          break;
+        case "authenticated-read":
+          _acl = CannedAccessControlList.AuthenticatedRead;
+          break;
+        case "bucket-owner-read":
+          _acl = CannedAccessControlList.BucketOwnerRead;
+          break;
+        case "bucket-owner-full-control":
+          _acl = CannedAccessControlList.BucketOwnerFullControl;
+          break;
+        case "log-delivery-write":
+          _acl = CannedAccessControlList.LogDeliveryWrite;
+          break;
+        default:
+          _acl = CannedAccessControlList.Private;
+          break;
+      }
+    } else {
+      _acl = CannedAccessControlList.Private;
+    }
 
     TransferObserver task;
     if (meta != null) {
@@ -246,9 +280,9 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
         String value = meta.getString(propKey);
         metaData.addUserMetadata(propKey, value);
       }
-      task = transferUtility.upload(bucket, key, file, metaData);
+      task = transferUtility.upload(bucket, key, file, metaData, _acl);
     } else {
-      task = transferUtility.upload(bucket, key, file);
+      task = transferUtility.upload(bucket, key, file, _acl);
     }
     subscribe(task);
     promise.resolve(convertTransferObserver(task));
