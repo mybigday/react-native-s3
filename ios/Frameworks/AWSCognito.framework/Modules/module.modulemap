@@ -1,0 +1,6 @@
+framework module AWSCognito {
+  umbrella header "AWSCognito.h"
+
+  export *
+  module * { export * }
+}
