@@ -181,6 +181,12 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
     } else if (credentialsProvider != null) {
       s3 = new AmazonS3Client(credentialsProvider);
     }
+
+    if (credentialsOptions.containsKey("accelerate_mode_enabled") &&
+        (Boolean) credentialsOptions.get("accelerate_mode_enabled")) {
+      s3.setS3ClientOptions(S3ClientOptions.builder().setAccelerateModeEnabled(true).build());
+    }
+
     s3.setRegion(region);
     transferUtility = new TransferUtility(s3, context);
     return true;
@@ -209,6 +215,10 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
     if (sessionToken != null) {
       credentialsOptions.put("session_token", sessionToken);
     }
+    credentialsOptions.put(
+      "accelerate_mode_enabled",
+      options.hasKey("accelerate_mode_enabled") && options.getBoolean("accelerate_mode_enabled")
+    );
     credentialsOptions.put("region", options.getString("region"));
     promise.resolve(setup(credentialsOptions));
   }
@@ -221,6 +231,10 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
     credentialsOptions.put("region", options.getString("region"));
     credentialsOptions.put("cognito_region", options.getString("cognito_region"));
     credentialsOptions.put("caching", options.getBoolean("caching"));
+    credentialsOptions.put(
+      "accelerate_mode_enabled",
+      options.hasKey("accelerate_mode_enabled") && options.getBoolean("accelerate_mode_enabled")
+    );
     promise.resolve(setup(credentialsOptions));
   }
 
