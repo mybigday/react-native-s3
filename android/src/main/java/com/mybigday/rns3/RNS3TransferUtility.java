@@ -244,7 +244,8 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
       while (iter.hasNextKey()) {
         String propKey = iter.nextKey();
         String value = meta.getString(propKey);
-        metaData.addUserMetadata(propKey, value);
+
+        metaData.setHeader(propKey, value);
       }
       task = transferUtility.upload(bucket, key, file, metaData);
     } else {
