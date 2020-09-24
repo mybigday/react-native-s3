@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint src test example/*.js",
     "test": "npm run lint && mocha",
-    "prepare": "npm test && ./scripts/download-ios.sh 2.5.2 && rm -rf ./ios/RNS3.xcodeproj/xcuserdata ./ios/RNS3.xcodeproj/project.xcworkspace"
+    "prepare": "./scripts/download-ios.sh 2.5.2 && rm -rf ./ios/RNS3.xcodeproj/xcuserdata ./ios/RNS3.xcodeproj/project.xcworkspace"
   },
   "repository": {
     "type": "git",
