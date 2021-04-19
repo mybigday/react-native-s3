@@ -19,8 +19,8 @@ if [ -d ./AWSCognito.framework ]; then rm -rf ./AWSCognito.framework; fi;
 
 curl -sS http://sdk-for-ios.amazonwebservices.com/aws-ios-sdk-$VERSION.zip > temp.zip
 unzip -o temp.zip -d temp
-mv temp/frameworks/AWSCore.framework ./AWSCore.framework
-mv temp/frameworks/AWSS3.framework ./AWSS3.framework
-mv temp/frameworks/AWSCognito.framework ./AWSCognito.framework
+mv temp/aws-ios-sdk-$VERSION/frameworks/AWSCore.framework ./AWSCore.framework
+mv temp/aws-ios-sdk-$VERSION/frameworks/AWSS3.framework ./AWSS3.framework
+mv temp/aws-ios-sdk-$VERSION/frameworks/AWSCognito.framework ./AWSCognito.framework
 rm -r temp
 rm temp.zip

@@ -232,26 +232,32 @@ public class RNS3TransferUtility extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void upload(ReadableMap options, Promise promise) {
-    String bucket = options.getString("bucket");
-    String key = options.getString("key");
-    File file = new File(options.getString("file"));
-    ReadableMap meta = options.getMap("meta");
-    ObjectMetadata metaData = new ObjectMetadata();
+    try {
+      String bucket = options.getString("bucket");
+      String key = options.getString("key");
+      File file = new File(options.getString("file"));
+      ReadableMap meta = options.getMap("meta");
+      ObjectMetadata metaData = new ObjectMetadata();
 
-    TransferObserver task;
-    if (meta != null) {
-      ReadableMapKeySetIterator iter = meta.keySetIterator();
-      while (iter.hasNextKey()) {
-        String propKey = iter.nextKey();
-        String value = meta.getString(propKey);
-        metaData.addUserMetadata(propKey, value);
+      TransferObserver task;
+      if (meta != null) {
+        ReadableMapKeySetIterator iter = meta.keySetIterator();
+        while (iter.hasNextKey()) {
+          String propKey = iter.nextKey();
+          String value = meta.getString(propKey);
+          metaData.addUserMetadata(propKey, value);
+        }
+        task = transferUtility.upload(bucket, key, file, metaData);
+      } else {
+        task = transferUtility.upload(bucket, key, file);
       }
-      task = transferUtility.upload(bucket, key, file, metaData);
-    } else {
-      task = transferUtility.upload(bucket, key, file);
+      subscribe(task);
+      promise.resolve(convertTransferObserver(task));
+    } catch (IllegalArgumentException e){
+        promise.reject(e);
+    } catch(Exception e){
+      promise.reject(e);
     }
-    subscribe(task);
-    promise.resolve(convertTransferObserver(task));
   }
 
   @ReactMethod

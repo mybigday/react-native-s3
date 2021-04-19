@@ -1,12 +1,13 @@
 {
   "name": "react-native-s3",
-  "version": "0.0.29",
+  "version": "0.0.29-1",
   "description": "A React Native wrapper for AWS S3 SDK",
   "main": "./src/index.js",
   "files": ["android/", "ios/", "src/"],
   "scripts": {
     "lint": "eslint src test example/*.js",
     "test": "npm run lint && mocha",
+    "download": "SKIP_DOWNLOAD_SDK_IF_EXISTS=1 ./scripts/download-ios.sh 2.19.1 && rm -rf ./ios/RNS3.xcodeproj/xcuserdata ./ios/RNS3.xcodeproj/project.xcworkspace",
     "prepublish": "npm test && ./scripts/download-ios.sh 2.5.2 && rm -rf ./ios/RNS3.xcodeproj/xcuserdata ./ios/RNS3.xcodeproj/project.xcworkspace"
   },
   "repository": {
